@@ -1,15 +1,17 @@
 class Node:
-    def __init__(self):
-        self.children = {}    # Дочерние узлы (ключ - символ, значение - узел)
-        self.fail = None      # Суффиксная ссылка (fail link)
-        self.output = []      # Список шаблонов, которые заканчиваются в этом узле
-        self.output_link = None  # Явная выходная ссылка (пока не используем)
+    def __init__(self, node_id):
+        self.node_id = node_id  # Уникальный ID узла
+        self.children = {}      # Дочерние узлы
+        self.fail = None        # Суффиксная ссылка
+        self.output = []        # Список шаблонов
+        self.output_link = None # Явная выходная ссылка (пока не используем)
 
 class AhoKorasik:
     def __init__(self):
         """Инициализация автомата с корнем"""
-        self.root = Node()
+        self.root = Node(0)  # Корень с уникальным ID
         self.node_counter = 0
+        self.pattern_counter = 0  # Счётчик шаблонов
 
     def add_pattern(self, pattern, index):
         """Добавление одного шаблона в дерево"""
@@ -18,13 +20,13 @@ class AhoKorasik:
         for char in pattern:
             if char not in node.children:
                 self.node_counter += 1
-                node.children[char] = Node()
-                print(f"  Создаём новый узел для символа '{char}'")
+                node.children[char] = Node(self.node_counter)
+                print(f"  Создаём новый узел с ID {self.node_counter} для символа '{char}'")
             else:
-                print(f"  Переходим в существующий узел для символа '{char}'")
+                print(f"  Переходим в существующий узел с ID {node.children[char].node_id} для символа '{char}'")
             node = node.children[char]
         node.output.append((index, len(pattern)))
-        print(f"  Шаблон '{pattern}' завершён в текущем узле.\n")
+        print(f"  Шаблон '{pattern}' завершён в узле с ID {node.node_id}.\n")
 
     def build_fail_links(self):
         """Построение суффиксных ссылок"""
@@ -51,7 +53,7 @@ class AhoKorasik:
 
                 if fail_node:
                     child_node.fail = fail_node.children[char]
-                    print(f"    Устанавливаем fail-ссылку на узел с символом '{char}'")
+                    print(f"    Устанавливаем fail-ссылку на узел с ID {child_node.fail.node_id} для символа '{char}'")
                 else:
                     child_node.fail = self.root
                     print(f"    Устанавливаем fail-ссылку на корень")
@@ -77,7 +79,7 @@ class AhoKorasik:
 
             if char in node.children:
                 node = node.children[char]
-                print(f"  Переход по символу '{char}' успешен")
+                print(f"  Переход по символу '{char}' успешен в узел с ID {node.node_id}")
             else:
                 node = self.root
                 print(f"  Переход по символу '{char}' не найден, возвращаемся в корень")
@@ -96,7 +98,7 @@ class AhoKorasik:
         print("\n" + "="*50)
         print("Подробный анализ длин цепочек ссылок...")
         print("="*50 + "\n")
-        
+
         nodes = []
         def collect_nodes(node):
             nodes.append(node)
@@ -107,7 +109,7 @@ class AhoKorasik:
         # Вычисляем максимальную длину цепочки по fail-ссылкам
         max_fail_length = 0
         fail_chains = []
-        
+
         for node in nodes:
             if node == self.root:
                 continue
@@ -118,7 +120,7 @@ class AhoKorasik:
                 length += 1
                 current = current.fail
                 chain_nodes.append(current)
-            
+
             if length > 0:
                 # Получаем символы для идентификации узлов
                 chain_info = []
@@ -130,16 +132,16 @@ class AhoKorasik:
                             if child == n:
                                 chars.append(char)
                     if chars:
-                        chain_info.append(f"'{''.join(chars)}'")
+                        chain_info.append(f"'{''.join(chars)}' (ID {n.node_id})")
                     else:
                         chain_info.append("(root)")
-                
+
                 fail_chains.append((length, chain_info))
                 max_fail_length = max(max_fail_length, length)
 
         # Сортируем цепочки по длине для наглядности
         fail_chains.sort(reverse=True, key=lambda x: x[0])
-        
+
         print("\nЦепочки суффиксных (fail) ссылок:")
         if not fail_chains:
             print("  Нет цепочек длиннее 1")
@@ -150,7 +152,7 @@ class AhoKorasik:
         # Вычисляем максимальную длину цепочки по выходным ссылкам
         max_output_length = 0
         output_chains = []
-        
+
         for node in nodes:
             if node.output:
                 length = 1  # сам узел считается
@@ -161,20 +163,20 @@ class AhoKorasik:
                         length += 1
                         chain_nodes.append(current)
                     current = current.fail
-                
+
                 if length > 1:
                     # Получаем информацию о шаблонах в цепочке
                     patterns_info = []
                     for n in chain_nodes:
                         patterns = [f"'{pat[0]}' (длина {pat[1]})" for pat in n.output]
                         patterns_info.append(f"[{', '.join(patterns)}]")
-                    
+
                     output_chains.append((length, patterns_info))
                     max_output_length = max(max_output_length, length)
 
         # Сортируем цепочки по длине
         output_chains.sort(reverse=True, key=lambda x: x[0])
-        
+
         print("\nЦепочки выходных (output) ссылок:")
         if not output_chains:
             print("  Нет цепочек длиннее 1")
