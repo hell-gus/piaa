@@ -10,12 +10,15 @@ class Node:
 class AhoCorasick:
     def __init__(self):
         self.root = Node()
+        self.nodes = [self.root]  # для хранения всех узлов
 
     def add_pattern(self, pattern, index, length):
         node = self.root
         for char in pattern:
             if char not in node.children:
-                node.children[char] = Node()
+                new_node = Node()
+                node.children[char] = new_node
+                self.nodes.append(new_node)  # добавляем узел в общий список
             node = node.children[char]
         node.output.append((index, length))
 
@@ -52,6 +55,31 @@ class AhoCorasick:
             for pattern_index, length in node.output:
                 result.append((i - length + 1, pattern_index))
         return result
+    
+    def get_longest_chains(self):
+        max_fail_chain = 0
+        max_output_chain = 0
+        
+        for node in self.nodes:
+            # Вычисляем длину цепочки fail-ссылок
+            fail_chain_length = 0
+            current = node
+            while current != self.root:
+                fail_chain_length += 1
+                current = current.fail
+            max_fail_chain = max(max_fail_chain, fail_chain_length)
+            
+            # Вычисляем длину цепочки output-ссылок
+            output_chain_length = 0
+            current = node
+            while current.output:
+                output_chain_length += 1
+                if current.fail == current or current.fail is None:
+                    break
+                current = current.fail
+            max_output_chain = max(max_output_chain, output_chain_length)
+        
+        return max_fail_chain, max_output_chain
 
 def find_wildcard_matches(text, pattern, wildcard):
     # Разделяем шаблон на подшаблоны, разделенные wildcard
