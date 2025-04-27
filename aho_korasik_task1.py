@@ -93,7 +93,9 @@ class AhoKorasik:
 
     def compute_chain_lengths(self):
         """Вычисление максимальных длин цепочек суффиксных и конечных ссылок"""
-        print("Анализ длин цепочек ссылок...\n")
+        print("\n" + "="*50)
+        print("Подробный анализ длин цепочек ссылок...")
+        print("="*50 + "\n")
         
         nodes = []
         def collect_nodes(node):
@@ -104,37 +106,86 @@ class AhoKorasik:
 
         # Вычисляем максимальную длину цепочки по fail-ссылкам
         max_fail_length = 0
+        fail_chains = []
+        
         for node in nodes:
             if node == self.root:
                 continue
             length = 0
             current = node
-            chain = []
+            chain_nodes = [current]
             while current != self.root and current.fail:
-                chain.append(current)
                 length += 1
                 current = current.fail
+                chain_nodes.append(current)
+            
             if length > 0:
-                print(f"  Цепочка fail-ссылок длиной {length}")
-            max_fail_length = max(max_fail_length, length)
+                # Получаем символы для идентификации узлов
+                chain_info = []
+                for n in chain_nodes[:-1]:  # Исключаем корень из вывода
+                    # Находим символ(ы) перехода к этому узлу
+                    chars = []
+                    for parent in nodes:
+                        for char, child in parent.children.items():
+                            if child == n:
+                                chars.append(char)
+                    if chars:
+                        chain_info.append(f"'{''.join(chars)}'")
+                    else:
+                        chain_info.append("(root)")
+                
+                fail_chains.append((length, chain_info))
+                max_fail_length = max(max_fail_length, length)
 
-        # Вычисляем максимальную длину цепочки по конечным выходным ссылкам
+        # Сортируем цепочки по длине для наглядности
+        fail_chains.sort(reverse=True, key=lambda x: x[0])
+        
+        print("\nЦепочки суффиксных (fail) ссылок:")
+        if not fail_chains:
+            print("  Нет цепочек длиннее 1")
+        else:
+            for length, chain in fail_chains:
+                print(f"  Длина {length}: {' -> '.join(chain)}")
+
+        # Вычисляем максимальную длину цепочки по выходным ссылкам
         max_output_length = 0
+        output_chains = []
+        
         for node in nodes:
             if node.output:
                 length = 1  # сам узел считается
                 current = node.fail
+                chain_nodes = [node]
                 while current != self.root:
                     if current.output:
                         length += 1
+                        chain_nodes.append(current)
                     current = current.fail
+                
                 if length > 1:
-                    print(f"  Цепочка output-ссылок длиной {length}")
-                max_output_length = max(max_output_length, length)
+                    # Получаем информацию о шаблонах в цепочке
+                    patterns_info = []
+                    for n in chain_nodes:
+                        patterns = [f"'{pat[0]}' (длина {pat[1]})" for pat in n.output]
+                        patterns_info.append(f"[{', '.join(patterns)}]")
+                    
+                    output_chains.append((length, patterns_info))
+                    max_output_length = max(max_output_length, length)
+
+        # Сортируем цепочки по длине
+        output_chains.sort(reverse=True, key=lambda x: x[0])
+        
+        print("\nЦепочки выходных (output) ссылок:")
+        if not output_chains:
+            print("  Нет цепочек длиннее 1")
+        else:
+            for length, chain in output_chains:
+                print(f"  Длина {length}: {' -> '.join(chain)}")
 
         print("\n" + "="*50)
+        print("Итоговые максимальные длины цепочек:")
         print(f"Максимальная длина цепочки суффиксных (fail) ссылок: {max_fail_length}")
-        print(f"Максимальная длина цепочки конечных (output) ссылок: {max_output_length}")
+        print(f"Максимальная длина цепочки выходных (output) ссылок: {max_output_length}")
         print("="*50 + "\n")
 
 def main():
